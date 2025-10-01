@@ -13,16 +13,14 @@ const Users = () => {
     unfollowUser,
     isUserFollowed,
     isUserLoading,
-    loadFollowingList,
   } = useUserStore();
 
   useEffect(() => {
     const loadData = async () => {
-      await loadFollowingList(); // load following list first
-      await suggestedUser(); // fetch suggested users
+      await suggestedUser(); 
     };
     loadData();
-  }, [loadFollowingList, suggestedUser]);
+  }, [suggestedUser]);
 
   const handleFollowToggle = async (userId: string) => {
     const isFollowed = isUserFollowed(userId);

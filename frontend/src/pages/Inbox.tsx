@@ -1,7 +1,8 @@
 import { Avatar, AvatarImage } from "@/components/ui/avatar";
+import { Input } from "@/components/ui/input";
 import { useUserStore } from "@/store/userStore";
 import { AvatarFallback } from "@radix-ui/react-avatar";
-import React, { useEffect } from "react";
+import  { useEffect } from "react";
 import { Link } from "react-router-dom";
 
 const Chat = () => {
@@ -16,6 +17,10 @@ const Chat = () => {
       <h2 className="text-2xl font-semibold mb-6 border-b border-zinc-950 pb-2">
         Messages
       </h2>
+
+       <div>
+        <Input placeholder="Search users" className="mb-5 bg-zinc-900 text-white border-zinc-800 rounded-lg py-6 focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all shadow-inner"/>
+       </div>
 
       <div className="space-y-4">
         {Array.isArray(followers) && followers.length > 0 ? (

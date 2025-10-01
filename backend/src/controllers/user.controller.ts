@@ -238,6 +238,7 @@ export const followers = async (req: Request, res: Response) => {
 
     const followers = await User.findById(userId)
       .populate("followers", "name email")
+      .populate("following", "name email")
       .select("followers");
 
     return res.status(200).json({ success: true, followers });
@@ -248,3 +249,4 @@ export const followers = async (req: Request, res: Response) => {
       .json({ success: false, message: "Internal server error" });
   }
 };
+
