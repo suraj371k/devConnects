@@ -1,13 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Message from "../models/message.model";
-
-// Import or get the io instance
-let io: any;
-
-export const setSocketIO = (socketIO: any) => {
-  io = socketIO;
-};
+import { getIOInstance, onlineUsers } from "../config/socket";
 
 export const sendMessage = async (req: Request, res: Response) => {
   try {
@@ -35,10 +29,13 @@ export const sendMessage = async (req: Request, res: Response) => {
       .populate("sender", "name email")
       .populate("receiver", "name email");
 
-    // Emit the message via Socket.io if available
-    if (io) {
-      const roomId = [userId, receiverId].sort().join("_");
-      io.to(roomId).emit("receiveMessage", populatedMessage);
+    //send message via socket.io to receiver if they online
+    const io = getIOInstance();
+    const receiverSocketId = onlineUsers.get(receiverId);
+
+    if (receiverSocketId) {
+      // Send to specific user only
+      io.to(receiverSocketId).emit("newMessage", populatedMessage);
     }
 
     res.status(201).json({ success: true, message: populatedMessage });
@@ -76,6 +73,70 @@ export const getMessages = async (req: Request, res: Response) => {
     res.status(200).json({ success: true, messages });
   } catch (error) {
     console.log("Error in get messages controller", error);
+    res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+
+// Optional: Get all users the current user has chatted with
+export const getChatUsers = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+
+    // Find all unique users who have exchanged messages with current user
+    const messages = await Message.aggregate([
+      {
+        $match: {
+          $or: [
+            { sender: new mongoose.Types.ObjectId(userId) },
+            { receiver: new mongoose.Types.ObjectId(userId) },
+          ],
+        },
+      },
+      {
+        $sort: { createdAt: -1 },
+      },
+      {
+        $group: {
+          _id: {
+            $cond: [
+              { $eq: ["$sender", new mongoose.Types.ObjectId(userId)] },
+              "$receiver",
+              "$sender",
+            ],
+          },
+          lastMessage: { $first: "$$ROOT" },
+        },
+      },
+      {
+        $lookup: {
+          from: "users",
+          localField: "_id",
+          foreignField: "_id",
+          as: "user",
+        },
+      },
+      {
+        $unwind: "$user",
+      },
+      {
+        $project: {
+          _id: "$user._id",
+          name: "$user.name",
+          email: "$user.email",
+          avatar: "$user.avatar",
+          lastMessage: "$lastMessage.text",
+          lastMessageTime: "$lastMessage.createdAt",
+        },
+      },
+      {
+        $sort: { lastMessageTime: -1 },
+      },
+    ]);
+
+    res.status(200).json({ success: true, users: messages });
+  } catch (error) {
+    console.log("Error in get chat users controller", error);
     res.status(500).json({ success: false, message: "Internal server error" });
   }
 };
