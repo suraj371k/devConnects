@@ -7,16 +7,28 @@ import CreatePost from "./pages/CreatePost";
 import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Messages from "./pages/Messages";
+import { useMessagesStore } from "./store/messageStore";
 
 const Posts = lazy(() => import("./pages/PostPage"));
-const Inbox = lazy(() => import("./pages/Inbox"))
+const Inbox = lazy(() => import("./pages/Inbox"));
 
 const App = () => {
-  const {  initializeAuth } = useAuthStore();
+  const { initializeAuth, user, initialized } = useAuthStore();
+  const { initializeSocket, disconnectSocket } = useMessagesStore();
 
   useEffect(() => {
-   initializeAuth()
+    initializeAuth();
   }, [initializeAuth]);
+
+  useEffect(() => {
+    if (user && initialized) {
+      initializeSocket();
+    } else {
+      disconnectSocket();
+    }
+
+    return () => disconnectSocket();
+  }, [user, initialized]);
 
   return (
     <BrowserRouter>

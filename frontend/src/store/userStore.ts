@@ -73,7 +73,6 @@ export const useUserStore = create<UserState>((set, get) => ({
         error: null,
       }));
       const res = await axiosClient.post(`/api/user/${targetUser}/follow`);
-      console.log("Follow response:", res.data);
       set((state) => ({
         isFollowing: res.data.following,
         followingUsers: [...state.followingUsers, targetUser],
@@ -95,7 +94,6 @@ export const useUserStore = create<UserState>((set, get) => ({
         error: null,
       }));
       const res = await axiosClient.delete(`/api/user/${targetUser}/unfollow`);
-      console.log("Unfollow response:", res.data);
       set((state) => ({
         isFollowing: false,
         followingUsers: state.followingUsers.filter((id) => id !== targetUser),
