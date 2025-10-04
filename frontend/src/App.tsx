@@ -8,6 +8,7 @@ import Login from "./pages/Login";
 import Signup from "./pages/Signup";
 import Messages from "./pages/Messages";
 import { useMessagesStore } from "./store/messageStore";
+import Notification from "./pages/Notification";
 
 const Posts = lazy(() => import("./pages/PostPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
@@ -41,6 +42,7 @@ const App = () => {
             <Route path="/create-post" element={<CreatePost />} />
             <Route path="/chat" element={<Inbox />} />
             <Route path="/chat/:id" element={<Messages />} />
+            <Route path="/notifications" element={<Notification />} />
           </Route>
         </Routes>
         <Toaster />

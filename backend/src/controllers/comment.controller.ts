@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import Post from "../models/post.model";
 import Comment from "../models/comment.model";
+import Notification from "../models/notification.model";
 
 export const createComment = async (req: Request, res: Response) => {
   try {
@@ -8,7 +9,7 @@ export const createComment = async (req: Request, res: Response) => {
     const { text } = req.body;
     const { postId } = req.params;
 
-    if (!text) { 
+    if (!text) {
       return res
         .status(400)
         .json({ success: false, message: "Text is required to comment" });
@@ -27,6 +28,13 @@ export const createComment = async (req: Request, res: Response) => {
       user: userId,
       post: postId,
       text,
+    });
+
+    await Notification.create({
+      from: userId,
+      to: post.author,
+      type: "comment",
+      read: false,
     });
 
     res.status(201).json({

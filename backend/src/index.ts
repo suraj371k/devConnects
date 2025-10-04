@@ -6,6 +6,7 @@ import { connectDb } from "./config/db";
 import passport from "passport";
 import "./config/passport";
 import { createServer } from "http";
+import { initializeSocket } from "./config/socket"; 
 
 //routes imports
 import authRoutes from "./routes/auth.routes";
@@ -13,7 +14,7 @@ import postRoutes from "./routes/post.routes";
 import userRoutes from "./routes/user.routes";
 import commentRoutes from "./routes/comment.routes";
 import messageRoutes from "./routes/message.routes";
-import { initializeSocket } from "./config/socket"; // Remove setIOInstance import
+import notificationRoutes from "./routes/notification.routes";
 
 dotenv.config({ path: ".env" });
 
@@ -44,6 +45,7 @@ app.use("/api/post", postRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/comment", commentRoutes);
 app.use("/api/message", messageRoutes);
+app.use("/api/notification", notificationRoutes);
 
 // Sample route
 app.get("/api/hello", (_req: Request, res: Response) => {

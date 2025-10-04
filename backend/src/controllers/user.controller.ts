@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import Post from "../models/post.model";
 import mongoose from "mongoose";
 import User from "../models/user.model";
+import Notification from "../models/notification.model";
 
 export const toggleLike = async (req: Request, res: Response) => {
   try {
@@ -16,7 +17,9 @@ export const toggleLike = async (req: Request, res: Response) => {
         .json({ success: false, message: "post not found" });
     }
 
-    if (post.likes.includes(userId)) {
+    const isLiked = post.likes.includes(userId);
+
+    if (isLiked) {
       //unlike
       post.likes = post.likes.filter(
         (likeUserId) => likeUserId.toString() !== userId.toString()
@@ -24,14 +27,26 @@ export const toggleLike = async (req: Request, res: Response) => {
     } else {
       //like
       post.likes.push(userId);
+
+      //avoid self like
+      if (userId.toString() === post.author.toString()) {
+        await Notification.create({
+          from: userId,
+          to: post.author,
+          type: "like",
+          read: false,
+        })
+      }
     }
 
     await post.save();
+
 
     return res.status(200).json({
       success: true,
       likesCount: post.likes.length,
       likes: post.likes,
+      message: isLiked ? "Unliked post" : "Liked post",
     });
   } catch (error) {
     console.log("Error in toggleLike controller", error);
@@ -100,6 +115,13 @@ export const followUser = async (req: Request, res: Response) => {
         { new: true }
       ),
     ]);
+
+    await Notification.create({
+      from: currentUserId,
+      to: targetUser,
+      type: "follow",
+      read: false,
+    })
 
     res.status(200).json({
       message: "Successfully followed user",
@@ -249,4 +271,3 @@ export const followers = async (req: Request, res: Response) => {
       .json({ success: false, message: "Internal server error" });
   }
 };
-

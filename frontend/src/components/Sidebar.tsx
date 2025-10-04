@@ -2,7 +2,6 @@ import {
   Home,
   MessageCircle,
   PlusSquare,
-  Clapperboard,
   LogOut,
   BellRing,
 } from "lucide-react";
@@ -58,14 +57,9 @@ const Sidebar = () => {
             <PlusSquare className="h-5 w-5" />
             <span>Create Post</span>
           </Button>
+      
           <Button
-            variant="ghost"
-            className="justify-start gap-3 text-gray-300 hover:text-white hover:bg-gray-800 w-full"
-          >
-            <Clapperboard className="h-5 w-5" />
-            <span>Reels</span>
-          </Button>
-          <Button
+           onClick={() => navigate('/notifications')}
             variant="ghost"
             className="justify-start gap-3 text-gray-300 hover:text-white hover:bg-gray-800 w-full"
           >
