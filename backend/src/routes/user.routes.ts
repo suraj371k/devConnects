@@ -3,9 +3,11 @@ import { authenticate } from "../middlewares/authenticate";
 import {
   followers,
   followUser,
+  getProfileById,
   getSuggestedUser,
   toggleLike,
   unfollowUser,
+  updateProfile,
   users,
 } from "../controllers/user.controller";
 const router = Router();
@@ -20,6 +22,13 @@ router.get('/suggested' , authenticate , getSuggestedUser)
 
 router.get('/followers' , authenticate , followers)
 
-router.get('/' , users)
+router.put('/profile/update'  , authenticate , updateProfile)
+
+// Make user profile by id public so other users can view profiles without
+// being authenticated. Protected actions (update/follow/unfollow) remain
+// behind authentication.
+router.get('/:id', getProfileById)
+
+router.get('/' , authenticate , users)
 
 export default router;

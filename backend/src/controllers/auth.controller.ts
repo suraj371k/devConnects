@@ -3,6 +3,7 @@ import { LoginUserInput, RegisterUserInput } from "../schema/user.schema";
 import bcrypt from "bcryptjs";
 import User from "../models/user.model";
 import jwt from "jsonwebtoken";
+import Post from "../models/post.model";
 
 export const register = async (
   req: Request<{}, {}, RegisterUserInput>,
@@ -31,10 +32,29 @@ export const register = async (
 
     await user.save();
 
+    // sanitize user object to avoid sending password
+    const sanitizedUser = {
+      id: user._id,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: (user as any).avatar,
+      dob: (user as any).dob,
+      about: (user as any).about,
+      location: (user as any).location,
+      github: (user as any).github,
+      linkedin: (user as any).linkedin,
+  website: (user as any).website || (user as any).websites,
+      experience: (user as any).experience || [],
+      followers: (user as any).followers || [],
+      following: (user as any).following || [],
+      createdAt: (user as any).createdAt,
+    };
+
     return res.status(201).json({
       success: true,
       message: "user created successfully",
-      user: { name, email, password },
+      user: sanitizedUser,
     });
   } catch (error) {
     console.log("Error in register user controller", error);
@@ -86,14 +106,29 @@ export const login = async (
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
+    // return a fuller user payload so frontend has profile fields available
+    const sanitizedUser = {
+      id: user._id,
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+      avatar: (user as any).avatar,
+      dob: (user as any).dob,
+      about: (user as any).about,
+      location: (user as any).location,
+      github: (user as any).github,
+      linkedin: (user as any).linkedin,
+  website: (user as any).website || (user as any).websites,
+      experience: (user as any).experience || [],
+      followers: (user as any).followers || [],
+      following: (user as any).following || [],
+      createdAt: (user as any).createdAt,
+    };
+
     return res.status(200).json({
       success: true,
       message: "Login successful",
-      user: {
-        id: user._id,
-        name: user.name,
-        email: user.email,
-      },
+      user: sanitizedUser,
     });
   } catch (error) {
     console.error("Error in login user controller", error);
@@ -129,13 +164,17 @@ export const profile = async (req: Request, res: Response) => {
       .populate("following", "_id name email")
       .populate("followers", "_id name email");
 
+    const posts = await Post.find({author: userId})
+
+    
+
     if (!user) {
       return res
         .status(404)
         .json({ success: false, message: "user not found" });
     }
 
-    return res.status(200).json({ success: true, user });
+    return res.status(200).json({ success: true, user , posts: posts || []  });
   } catch (error) {
     console.log("Error in profile controller", error);
     return res

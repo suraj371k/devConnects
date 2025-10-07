@@ -4,6 +4,7 @@ import {
   PlusSquare,
   LogOut,
   BellRing,
+  User,
 } from "lucide-react";
 import { useAuthStore } from "@/store/authStore";
 import { useNavigate } from "react-router-dom";
@@ -42,7 +43,7 @@ const Sidebar = () => {
             <span>Home</span>
           </Button>
           <Button
-           onClick={() => navigate('/chat')}
+            onClick={() => navigate("/chat")}
             variant="ghost"
             className="justify-start gap-3 text-gray-300 hover:text-white hover:bg-gray-800 w-full"
           >
@@ -57,14 +58,23 @@ const Sidebar = () => {
             <PlusSquare className="h-5 w-5" />
             <span>Create Post</span>
           </Button>
-      
+
           <Button
-           onClick={() => navigate('/notifications')}
+            onClick={() => navigate("/notifications")}
             variant="ghost"
             className="justify-start gap-3 text-gray-300 hover:text-white hover:bg-gray-800 w-full"
           >
             <BellRing className="h-5 w-5" />
             <span>Notifications</span>
+          </Button>
+
+          <Button
+            onClick={() => navigate(`/profile/${user?._id}`)}
+            variant="ghost"
+            className="justify-start gap-3 text-gray-300 hover:text-white hover:bg-gray-800 w-full"
+          >
+            <User className="h-5 w-5" />
+            <span>Profile</span>
           </Button>
         </nav>
 

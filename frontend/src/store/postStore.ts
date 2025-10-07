@@ -10,12 +10,12 @@ const axiosClient = axios.create({
 interface Comment {
   postId: string;
   _id: string;
-   user: {
-    name: string,
-    email: string
-   }
+  user: {
+    name: string;
+    email: string;
+  };
   text: string;
-  createdAt: Date
+  createdAt: Date;
 }
 
 interface Post {
@@ -30,15 +30,17 @@ interface Post {
   };
   likes?: string[];
   comments?: Comment[];
+  count?: number;
 }
 
 interface PostState {
   posts: Post[];
+  likedPosts: Post[];
   loading: boolean;
   error: null;
   currentPage: number;
   totalPages: number;
-  count: number;
+  count?: number;
   comments: Comment[];
 
   getPosts: (page?: number, limit?: number) => Promise<void>;
@@ -50,10 +52,15 @@ interface PostState {
   getComments: (postId: string) => Promise<void>;
   updateComment: (postId: string, text: string) => Promise<void>;
   deleteComment: (postId: string) => Promise<void>;
+  getUsersPost: () => Promise<void>;
+  getLikedPosts: () => Promise<void>;
+  getPostsByUser: (userId: string) => Promise<void>;
+  getLikedPostsByUser: (userId: string) => Promise<void>;
 }
 
 export const usePostStore = create<PostState>((set) => ({
   posts: [],
+  likedPosts: [],
   loading: false,
   error: null,
   currentPage: 1,
@@ -61,11 +68,60 @@ export const usePostStore = create<PostState>((set) => ({
   count: 0,
   comments: [],
 
+  getLikedPosts: async () => {
+    try {
+      set({ loading: true, error: null });
+      const res = await axiosClient.get(`/api/post/liked`);
+      set({ likedPosts: res.data.likedPosts, loading: false });
+    } catch (error: any) {
+      console.log("Error in get liked post controller", error);
+      set({ error: error?.response?.data?.message, loading: false });
+    }
+  },
+
+  getPostsByUser: async (userId: string) => {
+    try {
+      set({ loading: true, error: null });
+      const res = await axiosClient.get(`/api/post/user/${userId}`);
+      if (res.data.success) {
+        set({ posts: res.data.posts, loading: false });
+      } else {
+        set({ posts: [], loading: false, error: res.data.message || null });
+      }
+    } catch (error: any) {
+      console.error("Error fetching posts by user", error);
+      set({ posts: [], loading: false, error: error?.response?.data?.message || "Failed to fetch posts" });
+    }
+  },
+  getLikedPostsByUser: async (id: string) => {
+    try {
+      set({ loading: true, error: null });
+      const res = await axiosClient.get(`/api/post/user/${id}/liked`);
+      if (res.data.success) {
+        set({ likedPosts: res.data.likedPosts, loading: false });
+      } else {
+        set({ likedPosts: [], loading: false, error: res.data.message || null });
+      }
+    } catch (error: any) {
+      console.error("Error fetching liked posts by user", error);
+      set({ likedPosts: [], loading: false, error: error?.response?.data?.message || "Failed to fetch liked posts" });
+    }
+  },
+
+  getUsersPost: async () => {
+    try {
+      set({ loading: true, error: null });
+      const res = await axiosClient.get(`/api/post/my-posts`);
+      set({ posts: res.data.posts, loading: false });
+    } catch (error: any) {
+      console.log("Error in get user post controller", error);
+      set({ error: error?.response?.data?.message, loading: false });
+    }
+  },
+
   toggleLike: async (id: string) => {
     try {
-      console.log("Toggle like request for post:", id);
       const res = await axiosClient.put(`/api/user/${id}/like`);
-      console.log("Toggle like response:", res.data);
       const { likes } = res.data as { likes: string[] };
 
       set((state) => ({

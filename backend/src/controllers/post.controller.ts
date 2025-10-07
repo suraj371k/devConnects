@@ -225,3 +225,85 @@ export const updatePost = async (req: Request, res: Response) => {
       .json({ success: false, message: "Internal server error" });
   }
 };
+
+export const getUsersPosts = async (req: Request , res: Response) => {
+  try {
+
+    const userId = (req as any).user.id
+
+    if(!userId){
+      return res.status(404).json({success: false , message: "user not found or unauthorize user"})
+    }
+
+    const posts = await Post.find({author: userId}).populate('author' , "name email _id")
+
+    let count = posts.length
+
+    if(posts.length === 0){
+      return res.status(200).json({success: true , message: "you don't have any post yet"})
+    }
+
+    return res.status(200).json({success: true , count , posts})
+    
+  } catch (error) {
+    console.log("Error in get user posts" , error)
+    return res.status(500).json({success: false , message: "Internal server error"})
+  }
+} 
+
+//liked posts
+export const likedPosts = async (req: Request , res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+
+    if(!userId){
+      return res.status(404).json({success: false , message: "user not found"})
+    }
+
+    const likedPosts = await Post.find({likes: userId}).populate('author' , '_id name email')
+
+    return res.status(200).json({success: true , likedPosts})
+
+  } catch (error) {
+      console.log("Error in get user posts" , error)
+    return res.status(500).json({success: false , message: "Internal server error"})
+  }
+}
+
+// public: get liked posts by a specific user id
+export const getLikedPostsByUser = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "User id is required" });
+    }
+
+    const liked = await Post.find({ likes: id }).populate('author', '_id name email').sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, count: liked.length, likedPosts: liked });
+  } catch (error) {
+    console.error("Error in get liked posts by user", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};
+
+// public: get posts by a specific user id
+export const getPostsByUser = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+
+    if (!id) {
+      return res.status(400).json({ success: false, message: "User id is required" });
+    }
+
+    const posts = await Post.find({ author: id })
+      .populate("author", "name email _id")
+      .sort({ createdAt: -1 });
+
+    return res.status(200).json({ success: true, count: posts.length, posts });
+  } catch (error) {
+    console.error("Error in get posts by user", error);
+    return res.status(500).json({ success: false, message: "Internal server error" });
+  }
+};

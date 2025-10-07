@@ -29,6 +29,7 @@ import {
 import { useForm } from "react-hook-form";
 import toast from "react-hot-toast";
 import CommentForm from "./Comments";
+import { Link } from "react-router-dom";
 
 interface PostCardProps {
   postId: string;
@@ -56,7 +57,7 @@ interface EditFormData {
 const PostCard: React.FC<PostCardProps> = ({
   title,
   content,
-  images,
+  images ,
   author,
   shares = 0,
   postId,
@@ -125,6 +126,11 @@ const PostCard: React.FC<PostCardProps> = ({
 
   const post = posts.find((p) => p._id === postId);
   const currentLikes = post?.likes || [];
+  // Resolve profile id to navigate to when avatar is clicked. Prefer the
+  // author prop (passed from parent) and fall back to the post data from the
+  // store. If neither has an id we don't render a link to avoid navigating to
+  // `/profile/undefined` which would show the logged-in user's profile.
+  const profileId = (author as any)?._id || post?.author?._id || null;
   const isLiked = useMemo(() => {
     if (!user || !user.id) return false;
     return currentLikes.some((id) => {
@@ -169,19 +175,30 @@ const PostCard: React.FC<PostCardProps> = ({
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5 }}
-      className="max-w-2xl mx-auto"
+      className="max-w-3xl mx-auto"
     >
       <Card className="bg-black border-gray-700 shadow-2xl hover:shadow-gray-900/30 transition-all duration-300 overflow-hidden">
         {/* Card Header */}
         <CardHeader className="pb-3 relative">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-3">
-              <Avatar className="h-10 w-10 border-2 border-purple-500/20">
-                <AvatarImage src={author?.avatar} />
-                <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white font-bold">
-                  {author?.name?.charAt(0)}
-                </AvatarFallback>
-              </Avatar>
+              {profileId ? (
+                <Link to={`/profile/${profileId}`}>
+                  <Avatar className="h-10 w-10 border-2 border-purple-500/20">
+                    <AvatarImage src={author?.avatar} />
+                    <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white font-bold">
+                      {author?.name?.charAt(0)}
+                    </AvatarFallback>
+                  </Avatar>
+                </Link>
+              ) : (
+                <Avatar className="h-10 w-10 border-2 border-purple-500/20">
+                  <AvatarImage src={author?.avatar} />
+                  <AvatarFallback className="bg-gradient-to-br from-purple-600 to-blue-600 text-white font-bold">
+                    {author?.name?.charAt(0)}
+                  </AvatarFallback>
+                </Avatar>
+              )}
               <div className="flex-1 min-w-0">
                 <div className="flex items-center space-x-2">
                   <p className="font-semibold text-white truncate">

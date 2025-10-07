@@ -1,4 +1,4 @@
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
 import Layout from "./components/Layout";
 import { Toaster } from "react-hot-toast";
@@ -9,6 +9,8 @@ import Signup from "./pages/Signup";
 import Messages from "./pages/Messages";
 import { useMessagesStore } from "./store/messageStore";
 import Notification from "./pages/Notification";
+import ProtectedRoute from "./components/ProtectedRoute";
+import Profile from "./pages/Profile";
 
 const Posts = lazy(() => import("./pages/PostPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
@@ -36,13 +38,21 @@ const App = () => {
       <Suspense fallback={<div>Loading...</div>}>
         <Routes>
           <Route path="/" element={<Layout />}>
-            <Route index element={<Posts />} />
-            <Route path="/login" element={<Login />} />
             <Route path="/signup" element={<Signup />} />
+            <Route path="/login" element={<Login />} />
+            <Route index element={<Posts />} />
             <Route path="/create-post" element={<CreatePost />} />
             <Route path="/chat" element={<Inbox />} />
             <Route path="/chat/:id" element={<Messages />} />
-            <Route path="/notifications" element={<Notification />} />
+            <Route path="/profile/:userId" element={<Profile />} />
+            <Route
+              path="/notifications"
+              element={
+                <ProtectedRoute>
+                  <Notification />
+                </ProtectedRoute>
+              }
+            />
           </Route>
         </Routes>
         <Toaster />

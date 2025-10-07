@@ -6,7 +6,7 @@ import { connectDb } from "./config/db";
 import passport from "passport";
 import "./config/passport";
 import { createServer } from "http";
-import { initializeSocket } from "./config/socket"; 
+import { initializeSocket } from "./config/socket";
 
 //routes imports
 import authRoutes from "./routes/auth.routes";
@@ -26,7 +26,7 @@ app.use(cookieParser());
 app.use(express.json());
 app.use(
   cors({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+    origin: "http://localhost:5173",
     credentials: true,
   })
 );

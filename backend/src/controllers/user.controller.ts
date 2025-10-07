@@ -35,12 +35,11 @@ export const toggleLike = async (req: Request, res: Response) => {
           to: post.author,
           type: "like",
           read: false,
-        })
+        });
       }
     }
 
     await post.save();
-
 
     return res.status(200).json({
       success: true,
@@ -121,7 +120,7 @@ export const followUser = async (req: Request, res: Response) => {
       to: targetUser,
       type: "follow",
       read: false,
-    })
+    });
 
     res.status(200).json({
       message: "Successfully followed user",
@@ -269,5 +268,67 @@ export const followers = async (req: Request, res: Response) => {
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
+  }
+};
+
+//profile
+export const updateProfile = async (req: Request, res: Response) => {
+  try {
+    const userId = (req as any).user.id;
+    const { about, experience, location, linkedin, github, websites } =
+      req.body;
+
+    // Validate user existence
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ message: "User not found" });
+    }
+
+    // Update simple fields
+    if (about) user.about = about;
+    if (location) user.location = location;
+    if (linkedin) user.linkedin = linkedin;
+    if (github) user.github = github;
+    if (websites) user.websites = websites;
+
+    // Update experience (array of objects)
+    if (experience && Array.isArray(experience)) {
+      user.experience = experience.map((exp: any) => ({
+        title: exp.title,
+        company: exp.company,
+        description: exp.description,
+        from: exp.from,
+        to: exp.to,
+      }));
+    }
+    await user.save();
+
+    return res.status(200).json({
+      message: "Profile updated successfully",
+      user,
+    });
+  } catch (error) {
+    console.log("Error in in create profile");
+    return res.status(500).json({ message: "Server error", error });
+  }
+};
+
+//user profile by id
+export const getProfileById = async (req: Request, res: Response) => {
+  try {
+    const { id } = req.params;
+    const user = await User.findById(id)
+      .populate("followers", "_id name email")
+      .populate("following", "_id name email");
+
+    if (!user)
+      return res
+        .status(404)
+        .json({ success: false, message: "User not found" });
+
+    res.json({ success: true, user });
+  } catch (error) {
+    console.log("Error in in get profile");
+    return res.status(500).json({ message: "Server error", error });
   }
 };

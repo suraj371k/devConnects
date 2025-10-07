@@ -1,25 +1,36 @@
 import React, { useEffect } from "react";
 import { useNotificationStore } from "@/store/notificationStore";
-import { Bell, Trash2, Check, Heart, MessageCircle, UserPlus, Loader2 } from "lucide-react";
+import {
+  Bell,
+  Trash2,
+  Check,
+  Heart,
+  MessageCircle,
+  UserPlus,
+  Loader2,
+} from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import toast, { Toaster } from "react-hot-toast";
 
 const Notification = () => {
-  const { 
-    notifications, 
-    getNotifications, 
-    markNotificationAsRead, 
-    deleteNotification, 
-    loading, 
-    error 
+  const {
+    notifications,
+    getNotifications,
+    markNotificationAsRead,
+    deleteNotification,
+    loading,
+    error,
   } = useNotificationStore();
 
   useEffect(() => {
     getNotifications();
   }, []);
 
-  const handleMarkAsRead = async (notificationId: string, e: React.MouseEvent) => {
+  const handleMarkAsRead = async (
+    notificationId: string,
+    e: React.MouseEvent
+  ) => {
     e.stopPropagation();
     const loadingToast = toast.loading("Marking as read...");
     try {
@@ -95,25 +106,25 @@ const Notification = () => {
         position="top-center"
         toastOptions={{
           style: {
-            background: '#18181b',
-            color: '#fff',
-            border: '1px solid #27272a',
+            background: "#18181b",
+            color: "#fff",
+            border: "1px solid #27272a",
           },
           success: {
             iconTheme: {
-              primary: '#22c55e',
-              secondary: '#fff',
+              primary: "#22c55e",
+              secondary: "#fff",
             },
           },
           error: {
             iconTheme: {
-              primary: '#ef4444',
-              secondary: '#fff',
+              primary: "#ef4444",
+              secondary: "#fff",
             },
           },
         }}
       />
-      
+
       <div className="max-w-4xl mx-auto">
         {/* Header */}
         <div className="mb-8">
@@ -121,7 +132,9 @@ const Notification = () => {
             <Bell className="w-8 h-8" />
             <h1 className="text-4xl font-bold">Notifications</h1>
           </div>
-          <p className="text-gray-400">Stay updated with your latest activities</p>
+          <p className="text-gray-400">
+            Stay updated with your latest activities
+          </p>
         </div>
 
         {/* Loading State */}
@@ -134,7 +147,9 @@ const Notification = () => {
         {/* Error State */}
         {error && (
           <Alert className="bg-red-950/50 border-red-900 mb-6">
-            <AlertDescription className="text-red-400">{error}</AlertDescription>
+            <AlertDescription className="text-red-400">
+              {error}
+            </AlertDescription>
           </Alert>
         )}
 
@@ -145,7 +160,9 @@ const Notification = () => {
               <Bell className="w-12 h-12 text-gray-600" />
             </div>
             <h3 className="text-xl font-semibold mb-2">No notifications yet</h3>
-            <p className="text-gray-400">When you get notifications, they'll show up here</p>
+            <p className="text-gray-400">
+              When you get notifications, they'll show up here
+            </p>
           </div>
         )}
 
@@ -153,14 +170,14 @@ const Notification = () => {
         <div className="space-y-3">
           {notifications.map((notification) => {
             const isRead = (notification as any).read;
-            
+
             return (
               <div
                 key={notification._id}
                 className={`group relative rounded-lg p-4 transition-all duration-200 ${
                   isRead
-                    ? 'bg-black border border-gray-800 hover:border-gray-700'
-                    : 'bg-gradient-to-r from-gray-900 to-black border-2 border-blue-500/40 hover:border-blue-500/60'
+                    ? "bg-black border border-gray-800 hover:border-gray-700"
+                    : "bg-gradient-to-r from-gray-900 to-black border-2 border-blue-500/40 hover:border-blue-500/60"
                 }`}
               >
                 {/* Unread Indicator */}
@@ -176,7 +193,11 @@ const Notification = () => {
 
                   {/* Content */}
                   <div className="flex-1 min-w-0">
-                    <p className={`text-base leading-relaxed mb-1 ${!isRead ? 'font-semibold' : 'font-normal'}`}>
+                    <p
+                      className={`text-base leading-relaxed mb-1 ${
+                        !isRead ? "font-semibold" : "font-normal"
+                      }`}
+                    >
                       {getNotificationMessage(notification)}
                     </p>
                     <div className="flex items-center gap-2">

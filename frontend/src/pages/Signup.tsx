@@ -18,18 +18,23 @@ const Signup = () => {
 
   type RegisterUserForm = z.input<typeof registerUser>
 
-  const { register , handleSubmit , formState: {errors} } = useForm<RegisterUserForm>({ resolver: zodResolver(registerUser) })
+  const { register , handleSubmit } = useForm<RegisterUserForm>({ resolver: zodResolver(registerUser) })
 
   const onSubmit: SubmitHandler<RegisterUserForm> = (userData) => {
-    const parsed = registerUser.parse(userData)
-    console.log("Form data" , parsed)
-    signupUser(parsed)
-    toast.success("Signup successfull")
-  }
+    // ensure dob is string because AuthCredentials expects a string
+    const rawDob: unknown = (userData as any).dob;
+    const dobString = rawDob instanceof Date ? rawDob.toISOString() : String(rawDob ?? "");
+    const payload = { ...userData, dob: dobString } as any;
+    const parsed = registerUser.parse(payload) as any;
+    console.log("Form data", parsed);
+    // parsed is cast to any to match signupUser's expected AuthCredentials shape
+    signupUser(parsed);
+    toast.success("Signup successfull");
+  };
 
 
   return (
-    <div className="min-h-screen bg-black flex justify-center items-center p-4 relative overflow-hidden">
+    <div className="min-h-screen min-w-full bg-black flex justify-center items-center p-4 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-900/10 rounded-full blur-3xl"></div>
@@ -40,7 +45,7 @@ const Signup = () => {
         initial={{ opacity: 0, y: 20, scale: 0.95 }}
         animate={{ opacity: 1, y: 0, scale: 1 }}
         transition={{ duration: 0.6, ease: "easeOut" }}
-        className="flex flex-col justify-center items-center bg-zinc-950 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-zinc-800 relative z-10"
+  className="flex flex-col justify-center items-center bg-zinc-950 p-8 rounded-2xl shadow-2xl w-full max-w-md border border-zinc-800 relative z-10"
         style={{
           boxShadow: "0 25px 50px -12px rgba(0, 0, 0, 0.7), 0 0 0 1px rgba(39, 39, 42, 0.5)"
         }}

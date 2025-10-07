@@ -5,34 +5,41 @@ import { Lock, Mail } from "lucide-react";
 import { motion } from "framer-motion";
 import { useAuthStore } from "@/store/authStore";
 import toast from "react-hot-toast";
-import { useForm, type SubmitHandler } from 'react-hook-form';
-import { z } from 'zod';
+import { useForm, type SubmitHandler } from "react-hook-form";
+import { z } from "zod";
 import { loginUser as loginUserSchema } from "@/schemas/authSchema";
 import { zodResolver } from "@hookform/resolvers/zod";
 import GoogleLogin from "@/components/GoogleLogin";
 
 const Login = () => {
-
   const { loginUser, loading } = useAuthStore();
 
   type LoginUserForm = z.input<typeof loginUserSchema>;
 
-  const { register, handleSubmit, formState: { errors } } = useForm<LoginUserForm>({ 
-    resolver: zodResolver(loginUserSchema) 
+  const { register, handleSubmit } = useForm<LoginUserForm>({
+    resolver: zodResolver(loginUserSchema),
   });
 
   const navigate = useNavigate();
 
-  const onSubmit: SubmitHandler<LoginUserForm> = (userData) => {
-    const parsed = loginUserSchema.parse(userData);
-    console.log("Login data", parsed);
-    loginUser(parsed);
-    toast.success("Login successful");
-    navigate('/');
+  const onSubmit: SubmitHandler<LoginUserForm> = async (userData) => {
+    try {
+      const parsed = loginUserSchema.parse(userData);
+      const response = await loginUser(parsed);
+      if (response?.success) {
+        toast.success("Login successful");
+        navigate("/");
+      } else {
+        toast.error(response?.message || "Invalid credentials");
+      }
+    } catch (error: any) {
+      console.log("Error in login", error);
+      toast.error(error?.message || "An error occurred during login");
+    }
   };
 
   return (
-    <div className="min-h-screen bg-black flex justify-center items-center p-4 relative overflow-hidden">
+    <div className="min-h-screen min-w-full bg-black flex justify-center items-center p-4 relative overflow-hidden">
       {/* Animated background elements */}
       <div className="absolute inset-0 overflow-hidden">
         <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-900/10 rounded-full blur-3xl"></div>
@@ -76,7 +83,10 @@ const Login = () => {
           </Link>
         </motion.p>
 
-        <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-5 w-full">
+        <form
+          onSubmit={handleSubmit(onSubmit)}
+          className="flex flex-col gap-5 w-full"
+        >
           <motion.div
             initial={{ opacity: 0, x: -20 }}
             animate={{ opacity: 1, x: 0 }}
@@ -122,7 +132,9 @@ const Login = () => {
             </Button>
           </motion.div>
           <div className="relative text-center py-2">
-            <span className="text-xs text-gray-400 bg-zinc-950 px-2 relative z-10">or</span>
+            <span className="text-xs text-gray-400 bg-zinc-950 px-2 relative z-10">
+              or
+            </span>
             <div className="absolute left-0 right-0 top-1/2 -translate-y-1/2 h-px bg-zinc-800" />
           </div>
           <GoogleLogin />

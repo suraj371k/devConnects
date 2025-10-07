@@ -3,12 +3,27 @@ import { persist, createJSONStorage } from "zustand/middleware";
 import axios from "axios";
 import { backendUrl } from "@/lib/backendUrl";
 
-// Create axios client with default config
+// Axios client setup
 export const axiosClient = axios.create({
   baseURL: backendUrl,
-  withCredentials: true, // Important for cookies
+  withCredentials: true,
   timeout: 10000,
 });
+
+interface Experience {
+  _id: string;
+  title?: string;
+  company: string;
+  description: string;
+  from: string;
+  to: string;
+}
+
+interface Follower {
+  _id: string;
+  name: string;
+  email: string;
+}
 
 interface User {
   id: string;
@@ -17,7 +32,16 @@ interface User {
   email: string;
   avatar?: string;
   dob?: string;
+  about?: string;
+  location?: string;
+  linkedin?: string;
+  github?: string;
+  website?: string;
+  experience: Experience[];
+  followers: Follower[];
+  following: Follower[];
   createdAt?: string;
+  updatedAt?: string;
 }
 
 interface AuthCredentials {
@@ -27,190 +51,223 @@ interface AuthCredentials {
   dob?: string;
 }
 
+interface UpdateProfileData {
+  about?: string;
+  location?: string;
+  linkedin?: string;
+  github?: string;
+  website?: string;
+  experience?: Experience[];
+}
+
 interface AuthState {
   user: User | null;
+  profileUser?: User | null;
   loading: boolean;
   error: string | null;
   initialized: boolean;
 
   // Actions
-  signupUser: (userData: AuthCredentials) => Promise<void>;
-  loginUser: (userData: AuthCredentials) => Promise<void>;
-  logoutUser: () => Promise<void>;
+  signupUser: (
+    userData: AuthCredentials
+  ) => Promise<{ success: boolean; message?: string }>;
+  loginUser: (
+    userData: AuthCredentials
+  ) => Promise<{ success: boolean; message?: string }>;
+  logoutUser: () => Promise<{ success: boolean; message?: string }>;
   profile: () => Promise<User | null>;
   initializeAuth: () => Promise<void>;
+  updateProfile: (data: UpdateProfileData) => Promise<{ success: boolean; message?: string }>;
+  getProfileById: (id: string) => Promise<User | null>
   clearAuth: () => void;
   clearError: () => void;
 }
 
-// Helper function to normalize user data
 const normalizeUser = (apiUser: any): User | null => {
   if (!apiUser) return null;
-  
+
   return {
     id: apiUser.id || apiUser._id,
     _id: apiUser._id || apiUser.id,
-    name: apiUser.name,
-    email: apiUser.email,
+    name: apiUser.name || "",
+    email: apiUser.email || "",
     avatar: apiUser.avatar,
     dob: apiUser.dob,
     createdAt: apiUser.createdAt,
+    updatedAt: apiUser.updatedAt,
+    about: apiUser.about,
+    location: apiUser.location,
+    github: apiUser.github,
+    linkedin: apiUser.linkedin,
+    website: apiUser.website || apiUser.websites, // Handle both 'website' and 'websites'
+    experience: apiUser.experience || [],
+    followers: apiUser.followers || [],
+    following: apiUser.following || [],
   };
 };
 
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-      // Initial state
-      user: null,
+  user: null,
+  profileUser: null,
       loading: false,
       error: null,
       initialized: false,
 
-      signupUser: async (userData: AuthCredentials) => {
+      signupUser: async (userData) => {
         try {
           set({ loading: true, error: null });
-          
           const res = await axiosClient.post("/api/auth/register", userData);
-          
+
           if (res.data.success) {
             const user = normalizeUser(res.data.user);
-            set({ 
-              user, 
-              loading: false,
-              error: null 
-            });
+            set({ user, loading: false });
+            return { success: true, message: "Signup successful" };
           } else {
-            throw new Error(res.data.message || "Signup failed");
+            const message = res.data.message || "Signup failed";
+            set({ loading: false, error: message });
+            return { success: false, message };
           }
         } catch (err: any) {
-          const errorMessage = err.response?.data?.message || "Signup failed";
-          set({
-            error: errorMessage,
-            loading: false,
-          });
-          throw new Error(errorMessage);
+          const message = err.response?.data?.message || "Signup failed";
+          set({ loading: false, error: message });
+          return { success: false, message };
         }
       },
 
-      loginUser: async (userData: AuthCredentials) => {
+      getProfileById: async (id: string) => {
         try {
           set({ loading: true, error: null });
-          
-          const res = await axiosClient.post("/api/auth/login", userData);
-          
+          const res = await axiosClient.get(`/api/user/${id}`);
           if (res.data.success) {
             const user = normalizeUser(res.data.user);
-            set({ 
-              user, 
-              loading: false,
-              error: null 
-            });
+            // set the fetched profile into profileUser so we don't overwrite
+            // the authenticated `user` in the store
+            set({ profileUser: user, loading: false });
+            return user;
           } else {
-            throw new Error(res.data.message || "Login failed");
+            set({ loading: false, error: res.data.message || "User not found" });
+            return null;
           }
         } catch (err: any) {
-          const errorMessage = err.response?.data?.message || "Login failed";
-          set({
-            error: errorMessage,
-            loading: false,
-          });
-          throw new Error(errorMessage);
+          set({ loading: false, error: err?.response?.data?.message || "Failed to fetch user" });
+          return null;
+        }
+      },
+
+      loginUser: async (userData) => {
+        try {
+          set({ loading: true, error: null });
+          const res = await axiosClient.post("/api/auth/login", userData);
+
+          if (res.data.success) {
+            const user = normalizeUser(res.data.user);
+            set({ user, loading: false });
+            return { success: true, message: "Login successful" };
+          } else {
+            const message = res.data.message || "Login failed";
+            set({ loading: false, error: message });
+            return { success: false, message };
+          }
+        } catch (err: any) {
+          const message = err.response?.data?.message || "Login failed";
+          set({ loading: false, error: message });
+          return { success: false, message };
         }
       },
 
       logoutUser: async () => {
         try {
           set({ loading: true, error: null });
-          
           const res = await axiosClient.post("/api/auth/logout");
-          
           if (res.data.success) {
-            set({ 
-              user: null, 
-              loading: false,
-              error: null,
-              initialized: true 
-            });
+            set({ user: null, loading: false });
+            return { success: true, message: "Logout successful" };
           } else {
-            throw new Error(res.data.message || "Logout failed");
+            return {
+              success: false,
+              message: res.data.message || "Logout failed",
+            };
           }
         } catch (err: any) {
-          // Even if logout request fails, clear local state
-          set({ 
-            user: null, 
-            loading: false,
-            initialized: true 
-          });
-          console.error("Logout error:", err);
+          set({ user: null, loading: false });
+          return { success: false, message: "Logout failed" };
         }
       },
 
-      profile: async (): Promise<User | null> => {
+      profile: async () => {
         try {
           set({ loading: true, error: null });
-          
           const res = await axiosClient.get("/api/auth/profile");
-          
+
+          console.log("Full profile response:", res.data);
+
           if (res.data.success) {
             const user = normalizeUser(res.data.user);
-            set({ 
-              user, 
-              loading: false,
-              error: null 
-            });
+            console.log("Normalized user:", user);
+            set({ user, loading: false });
             return user;
           } else {
-            throw new Error(res.data.message || "Profile fetch failed");
+            set({ user: null, loading: false });
+            return null;
           }
-        } catch (err: any) {
-          const errorMessage = err.response?.data?.message || "Profile fetch failed";
-          set({
-            error: errorMessage,
-            loading: false,
-            user: null,
-          });
+        } catch (err) {
+          console.error("Profile error:", err);
+          set({ user: null, loading: false });
           return null;
         }
       },
 
-      initializeAuth: async () => {
-        // Skip if already initialized
-        if (get().initialized) return;
-
+      updateProfile: async (data: UpdateProfileData) => {
         try {
           set({ loading: true, error: null });
           
-          const res = await axiosClient.get("/api/auth/profile");
+          // Prepare the data for the backend
+          const updateData: any = { ...data };
           
-          if (res.data.success) {
+          // Handle the website field mapping (frontend uses 'website', backend might use 'websites')
+          if (data.website) {
+            updateData.websites = data.website;
+            delete updateData.website;
+          }
+
+          const res = await axiosClient.put("/api/auth/update-profile", updateData);
+
+          if (res.data.success || res.data.message === "Profile updated successfully") {
             const user = normalizeUser(res.data.user);
-            set({ 
-              user, 
-              loading: false,
-              initialized: true,
-              error: null 
-            });
+            set({ user, loading: false, error: null });
+            return { success: true, message: "Profile updated successfully" };
           } else {
-            throw new Error(res.data.message || "Profile fetch failed");
+            const message = res.data.message || "Profile update failed";
+            set({ loading: false, error: message });
+            return { success: false, message };
           }
         } catch (err: any) {
-          // Silent fail - user is not authenticated
-          set({
-            user: null,
-            loading: false,
-            initialized: true,
-            error: null, // Don't show error for initial auth check
-          });
+          const message = err.response?.data?.message || "Profile update failed";
+          set({ loading: false, error: message });
+          return { success: false, message };
+        }
+      },
+
+      initializeAuth: async () => {
+        if (get().initialized) return;
+
+        try {
+          const res = await axiosClient.get("/api/auth/profile");
+          if (res.data.success) {
+            const user = normalizeUser(res.data.user);
+            set({ user, initialized: true });
+          } else {
+            set({ user: null, initialized: true });
+          }
+        } catch {
+          set({ user: null, initialized: true });
         }
       },
 
       clearAuth: () => {
-        set({
-          user: null,
-          error: null,
-          loading: false,
-        });
+        set({ user: null, error: null, loading: false });
       },
 
       clearError: () => {
@@ -220,20 +277,19 @@ export const useAuthStore = create<AuthState>()(
     {
       name: "auth-storage",
       storage: createJSONStorage(() => localStorage),
-      partialize: (state) => ({ 
+      partialize: (state) => ({
         user: state.user,
-        initialized: state.initialized 
+        initialized: state.initialized,
       }),
     }
   )
 );
 
-// Optional: Add response interceptor for automatic auth handling
+// Handle 401 globally
 axiosClient.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response?.status === 401) {
-      // Clear auth state on unauthorized
       useAuthStore.getState().clearAuth();
     }
     return Promise.reject(error);
