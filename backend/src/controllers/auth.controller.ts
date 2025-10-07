@@ -44,7 +44,7 @@ export const register = async (
       location: (user as any).location,
       github: (user as any).github,
       linkedin: (user as any).linkedin,
-  website: (user as any).website || (user as any).websites,
+      website: (user as any).website || (user as any).websites,
       experience: (user as any).experience || [],
       followers: (user as any).followers || [],
       following: (user as any).following || [],
@@ -101,8 +101,8 @@ export const login = async (
 
     res.cookie("token", token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: true, 
+      sameSite: "none", 
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -118,7 +118,7 @@ export const login = async (
       location: (user as any).location,
       github: (user as any).github,
       linkedin: (user as any).linkedin,
-  website: (user as any).website || (user as any).websites,
+      website: (user as any).website || (user as any).websites,
       experience: (user as any).experience || [],
       followers: (user as any).followers || [],
       following: (user as any).following || [],
@@ -164,9 +164,7 @@ export const profile = async (req: Request, res: Response) => {
       .populate("following", "_id name email")
       .populate("followers", "_id name email");
 
-    const posts = await Post.find({author: userId})
-
-    
+    const posts = await Post.find({ author: userId });
 
     if (!user) {
       return res
@@ -174,7 +172,7 @@ export const profile = async (req: Request, res: Response) => {
         .json({ success: false, message: "user not found" });
     }
 
-    return res.status(200).json({ success: true, user , posts: posts || []  });
+    return res.status(200).json({ success: true, user, posts: posts || [] });
   } catch (error) {
     console.log("Error in profile controller", error);
     return res
