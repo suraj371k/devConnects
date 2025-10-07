@@ -29,7 +29,7 @@ app.use(
   // WARNING: This is permissive and should be reverted or replaced with a strict
   // allowlist (using FRONTEND_URL) in production.
   cors({
-    origin: "https://dev-connects.vercel.app",
+    origin: "https://devconnects-4mn6.onrender.com",
     credentials: true,
   })
 );
