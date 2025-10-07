@@ -29,9 +29,8 @@ app.use(
   // WARNING: This is permissive and should be reverted or replaced with a strict
   // allowlist (using FRONTEND_URL) in production.
   cors({
-    origin: ["https://dev-connects.vercel.app" , "http://localhost:5173"],
+    origin: "https://dev-connects.vercel.app",
     credentials: true,
-    exposedHeaders: ["Set-Cookie"],
   })
 );
 app.use(passport.initialize());
