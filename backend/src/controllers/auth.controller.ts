@@ -103,8 +103,8 @@ export const login = async (
     console.log("Login request origin:", req.headers.origin);
     console.log("Setting cookie with options:", {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
+      secure: false,
+      sameSite: "lax",
     });
 
     res.cookie("token", token, {
