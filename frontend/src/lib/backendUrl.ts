@@ -1,1 +1,1 @@
-export const backendUrl = 'http://localhost:7000'
+export const backendUrl = 'https://devconnects-4mn6.onrender.com'
