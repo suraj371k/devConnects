@@ -116,7 +116,6 @@ export const login = async (
 
     // return a fuller user payload so frontend has profile fields available
     const sanitizedUser = {
-      id: user._id,
       _id: user._id,
       name: user.name,
       email: user.email,

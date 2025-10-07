@@ -93,7 +93,7 @@ export const useUserStore = create<UserState>((set, get) => ({
         loadingUsers: [...state.loadingUsers, targetUser],
         error: null,
       }));
-      const res = await axiosClient.delete(`/api/user/${targetUser}/unfollow`);
+       await axiosClient.delete(`/api/user/${targetUser}/unfollow`);
       set((state) => ({
         isFollowing: false,
         followingUsers: state.followingUsers.filter((id) => id !== targetUser),

@@ -18,7 +18,6 @@ const Messages = () => {
     isSocketConnected,
     onlineUsers,
     sendMessage,
-    getMessages,
     setSelectedUser,
     clearError,
   } = useMessagesStore();

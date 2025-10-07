@@ -1,19 +1,21 @@
-import { BrowserRouter, Route, Routes, useNavigate } from "react-router-dom";
+import { BrowserRouter, Route, Routes} from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
 import Layout from "./components/Layout";
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./store/authStore";
-import CreatePost from "./pages/CreatePost";
-import Login from "./pages/Login";
-import Signup from "./pages/Signup";
-import Messages from "./pages/Messages";
 import { useMessagesStore } from "./store/messageStore";
-import Notification from "./pages/Notification";
 import ProtectedRoute from "./components/ProtectedRoute";
-import Profile from "./pages/Profile";
 
 const Posts = lazy(() => import("./pages/PostPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
+const Profile = lazy(() => import('./pages/Profile'))
+const Notification = lazy(() => import('./pages/Notification'))
+const Login = lazy(() => import('./pages/Login'))
+const Signup = lazy(() => import('./pages/Signup'))
+const CreatePost = lazy(() => import('./pages/CreatePost'))
+const Messages = lazy(() => import('./pages/Messages'))
+
+
 
 const App = () => {
   const { initializeAuth, user, initialized } = useAuthStore();
