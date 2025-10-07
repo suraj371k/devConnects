@@ -25,23 +25,18 @@ const httpServer = createServer(app);
 app.use(cookieParser());
 app.use(express.json());
 app.use(
+  // TEMPORARY: reflect the incoming origin to allow testing from localhost/frontends.
+  // WARNING: This is permissive and should be reverted or replaced with a strict
+  // allowlist (using FRONTEND_URL) in production.
   cors({
-    origin: (origin, callback) => {
-      const allowed = [
-        process.env.FRONTEND_URL || "",
-        "http://localhost:5173",
-      ].filter(Boolean);
-
-      // Allow requests with no origin (like curl, mobile apps)
+    origin: function (origin, callback) {
+      // Allow requests with no origin (curl/postman)
       if (!origin) return callback(null, true);
-
-      if (allowed.includes(origin)) {
-        callback(null, true);
-      } else {
-        callback(new Error("Not allowed by CORS"));
-      }
+      // Reflect origin back to the response so browser receives ACAO: <origin>
+      callback(null, true);
     },
     credentials: true,
+    exposedHeaders: ["Set-Cookie"],
   })
 );
 app.use(passport.initialize());

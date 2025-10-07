@@ -99,10 +99,18 @@ export const login = async (
       { expiresIn: "7d" }
     );
 
+    // Debug logging to help diagnose cross-site cookie issues
+    console.log("Login request origin:", req.headers.origin);
+    console.log("Setting cookie with options:", {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
+    });
+
     res.cookie("token", token, {
       httpOnly: true,
-      secure: true, 
-      sameSite: "none", 
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "none",
       maxAge: 7 * 24 * 60 * 60 * 1000,
     });
 
@@ -199,12 +207,21 @@ export const googleCallback = async (req: Request, res: Response) => {
       { expiresIn: "7d" }
     );
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+
+      // Debug logging to help diagnose cross-site cookie issues
+      console.log("Google callback request origin:", req.headers.origin);
+      console.log("Setting cookie with options:", {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "none",
+      });
+
+      res.cookie("token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "none",
+        maxAge: 7 * 24 * 60 * 60 * 1000,
+      });
 
     const redirectUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     return res.redirect(redirectUrl);
