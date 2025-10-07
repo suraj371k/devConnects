@@ -29,12 +29,7 @@ app.use(
   // WARNING: This is permissive and should be reverted or replaced with a strict
   // allowlist (using FRONTEND_URL) in production.
   cors({
-    origin: function (origin, callback) {
-      // Allow requests with no origin (curl/postman)
-      if (!origin) return callback(null, true);
-      // Reflect origin back to the response so browser receives ACAO: <origin>
-      callback(null, true);
-    },
+    origin: "*",
     credentials: true,
     exposedHeaders: ["Set-Cookie"],
   })
