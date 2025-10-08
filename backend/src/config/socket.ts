@@ -13,7 +13,7 @@ let ioInstance: Server | null = null;
 export const initializeSocket = (httpServer: HTTPServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: "*",
+      origin: ["https://dev-connects.vercel.app", "http://localhost:5173"],
       credentials: true,
     },
   });
@@ -29,11 +29,11 @@ export const initializeSocket = (httpServer: HTTPServer) => {
   io.use((socket, next) => {
     try {
       // Parse cookies from handshake headers
-      const cookies = cookie.parse(socket.handshake.headers.cookie || '');
-      
+      const cookies = cookie.parse(socket.handshake.headers.cookie || "");
+
       // Get token from cookies (adjust the name based on your cookie name)
       const token = cookies.token || cookies.accessToken || cookies.jwt;
-      
+
       if (!token) {
         console.log("❌ No token found in cookies");
         return next(new Error("No token provided"));
