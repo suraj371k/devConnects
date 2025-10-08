@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.followers = exports.getSuggestedUser = exports.users = exports.unfollowUser = exports.followUser = exports.toggleLike = void 0;
+exports.getProfileById = exports.updateProfile = exports.followers = exports.getSuggestedUser = exports.users = exports.unfollowUser = exports.followUser = exports.toggleLike = void 0;
 const post_model_1 = __importDefault(require("../models/post.model"));
 const mongoose_1 = __importDefault(require("mongoose"));
 const user_model_1 = __importDefault(require("../models/user.model"));
@@ -226,3 +226,65 @@ const followers = async (req, res) => {
     }
 };
 exports.followers = followers;
+//profile
+const updateProfile = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        const { about, experience, location, linkedin, github, websites } = req.body;
+        // Validate user existence
+        const user = await user_model_1.default.findById(userId);
+        if (!user) {
+            return res.status(404).json({ message: "User not found" });
+        }
+        // Update simple fields
+        if (about)
+            user.about = about;
+        if (location)
+            user.location = location;
+        if (linkedin)
+            user.linkedin = linkedin;
+        if (github)
+            user.github = github;
+        if (websites)
+            user.websites = websites;
+        // Update experience (array of objects)
+        if (experience && Array.isArray(experience)) {
+            user.experience = experience.map((exp) => ({
+                title: exp.title,
+                company: exp.company,
+                description: exp.description,
+                from: exp.from,
+                to: exp.to,
+            }));
+        }
+        await user.save();
+        return res.status(200).json({
+            message: "Profile updated successfully",
+            user,
+        });
+    }
+    catch (error) {
+        console.log("Error in in create profile");
+        return res.status(500).json({ message: "Server error", error });
+    }
+};
+exports.updateProfile = updateProfile;
+//user profile by id
+const getProfileById = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const user = await user_model_1.default.findById(id)
+            .populate("followers", "_id name email")
+            .populate("following", "_id name email");
+        if (!user)
+            return res
+                .status(404)
+                .json({ success: false, message: "User not found" });
+        res.json({ success: true, user });
+    }
+    catch (error) {
+        console.log("Error in in get profile");
+        return res.status(500).json({ message: "Server error", error });
+    }
+};
+exports.getProfileById = getProfileById;

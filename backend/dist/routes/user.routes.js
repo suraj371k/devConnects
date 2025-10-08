@@ -9,5 +9,10 @@ router.post("/:targetUser/follow", authenticate_1.authenticate, user_controller_
 router.delete("/:targetUser/unfollow", authenticate_1.authenticate, user_controller_1.unfollowUser);
 router.get('/suggested', authenticate_1.authenticate, user_controller_1.getSuggestedUser);
 router.get('/followers', authenticate_1.authenticate, user_controller_1.followers);
-router.get('/', user_controller_1.users);
+router.put('/profile/update', authenticate_1.authenticate, user_controller_1.updateProfile);
+// Make user profile by id public so other users can view profiles without
+// being authenticated. Protected actions (update/follow/unfollow) remain
+// behind authentication.
+router.get('/:id', user_controller_1.getProfileById);
+router.get('/', authenticate_1.authenticate, user_controller_1.users);
 exports.default = router;

@@ -25,8 +25,12 @@ const httpServer = (0, http_1.createServer)(app);
 // Middleware should come BEFORE Socket.IO initialization
 app.use((0, cookie_parser_1.default)());
 app.use(express_1.default.json());
-app.use((0, cors_1.default)({
-    origin: process.env.FRONTEND_URL || "http://localhost:5173",
+app.use(
+// TEMPORARY: reflect the incoming origin to allow testing from localhost/frontends.
+// WARNING: This is permissive and should be reverted or replaced with a strict
+// allowlist (using FRONTEND_URL) in production.
+(0, cors_1.default)({
+    origin: "https://dev-connects.vercel.app",
     credentials: true,
 }));
 app.use(passport_1.default.initialize());

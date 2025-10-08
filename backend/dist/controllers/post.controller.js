@@ -3,7 +3,7 @@ var __importDefault = (this && this.__importDefault) || function (mod) {
     return (mod && mod.__esModule) ? mod : { "default": mod };
 };
 Object.defineProperty(exports, "__esModule", { value: true });
-exports.updatePost = exports.deletePost = exports.getPosts = exports.createPost = void 0;
+exports.getPostsByUser = exports.getLikedPostsByUser = exports.likedPosts = exports.getUsersPosts = exports.updatePost = exports.deletePost = exports.getPosts = exports.createPost = void 0;
 const fs_1 = __importDefault(require("fs"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const cloudinary_1 = __importDefault(require("../config/cloudinary"));
@@ -191,3 +191,72 @@ const updatePost = async (req, res) => {
     }
 };
 exports.updatePost = updatePost;
+const getUsersPosts = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        if (!userId) {
+            return res.status(404).json({ success: false, message: "user not found or unauthorize user" });
+        }
+        const posts = await post_model_1.default.find({ author: userId }).populate('author', "name email _id");
+        let count = posts.length;
+        if (posts.length === 0) {
+            return res.status(200).json({ success: true, message: "you don't have any post yet" });
+        }
+        return res.status(200).json({ success: true, count, posts });
+    }
+    catch (error) {
+        console.log("Error in get user posts", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+exports.getUsersPosts = getUsersPosts;
+//liked posts
+const likedPosts = async (req, res) => {
+    try {
+        const userId = req.user.id;
+        if (!userId) {
+            return res.status(404).json({ success: false, message: "user not found" });
+        }
+        const likedPosts = await post_model_1.default.find({ likes: userId }).populate('author', '_id name email');
+        return res.status(200).json({ success: true, likedPosts });
+    }
+    catch (error) {
+        console.log("Error in get user posts", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+exports.likedPosts = likedPosts;
+// public: get liked posts by a specific user id
+const getLikedPostsByUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ success: false, message: "User id is required" });
+        }
+        const liked = await post_model_1.default.find({ likes: id }).populate('author', '_id name email').sort({ createdAt: -1 });
+        return res.status(200).json({ success: true, count: liked.length, likedPosts: liked });
+    }
+    catch (error) {
+        console.error("Error in get liked posts by user", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+exports.getLikedPostsByUser = getLikedPostsByUser;
+// public: get posts by a specific user id
+const getPostsByUser = async (req, res) => {
+    try {
+        const { id } = req.params;
+        if (!id) {
+            return res.status(400).json({ success: false, message: "User id is required" });
+        }
+        const posts = await post_model_1.default.find({ author: id })
+            .populate("author", "name email _id")
+            .sort({ createdAt: -1 });
+        return res.status(200).json({ success: true, count: posts.length, posts });
+    }
+    catch (error) {
+        console.error("Error in get posts by user", error);
+        return res.status(500).json({ success: false, message: "Internal server error" });
+    }
+};
+exports.getPostsByUser = getPostsByUser;

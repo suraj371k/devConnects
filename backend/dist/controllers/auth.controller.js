@@ -7,6 +7,7 @@ exports.googleCallback = exports.profile = exports.logout = exports.login = expo
 const bcryptjs_1 = __importDefault(require("bcryptjs"));
 const user_model_1 = __importDefault(require("../models/user.model"));
 const jsonwebtoken_1 = __importDefault(require("jsonwebtoken"));
+const post_model_1 = __importDefault(require("../models/post.model"));
 const register = async (req, res) => {
     try {
         const { name, email, password, dob } = req.body;
@@ -24,10 +25,28 @@ const register = async (req, res) => {
         const hashedPassword = await bcryptjs_1.default.hash(password, 10);
         const user = new user_model_1.default({ name, email, dob, password: hashedPassword });
         await user.save();
+        // sanitize user object to avoid sending password
+        const sanitizedUser = {
+            id: user._id,
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            dob: user.dob,
+            about: user.about,
+            location: user.location,
+            github: user.github,
+            linkedin: user.linkedin,
+            website: user.website || user.websites,
+            experience: user.experience || [],
+            followers: user.followers || [],
+            following: user.following || [],
+            createdAt: user.createdAt,
+        };
         return res.status(201).json({
             success: true,
             message: "user created successfully",
-            user: { name, email, password },
+            user: sanitizedUser,
         });
     }
     catch (error) {
@@ -59,20 +78,40 @@ const login = async (req, res) => {
                 .json({ success: false, message: "Invalid credentials" });
         }
         const token = jsonwebtoken_1.default.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        // Debug logging to help diagnose cross-site cookie issues
+        console.log("Login request origin:", req.headers.origin);
+        console.log("Setting cookie with options:", {
+            httpOnly: true,
+            secure: false,
+            sameSite: "lax",
+        });
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
-            sameSite: "lax",
+            sameSite: "none",
             maxAge: 7 * 24 * 60 * 60 * 1000,
         });
+        // return a fuller user payload so frontend has profile fields available
+        const sanitizedUser = {
+            _id: user._id,
+            name: user.name,
+            email: user.email,
+            avatar: user.avatar,
+            dob: user.dob,
+            about: user.about,
+            location: user.location,
+            github: user.github,
+            linkedin: user.linkedin,
+            website: user.website || user.websites,
+            experience: user.experience || [],
+            followers: user.followers || [],
+            following: user.following || [],
+            createdAt: user.createdAt,
+        };
         return res.status(200).json({
             success: true,
             message: "Login successful",
-            user: {
-                id: user._id,
-                name: user.name,
-                email: user.email,
-            },
+            user: sanitizedUser,
         });
     }
     catch (error) {
@@ -108,12 +147,13 @@ const profile = async (req, res) => {
         const user = await user_model_1.default.findById(userId)
             .populate("following", "_id name email")
             .populate("followers", "_id name email");
+        const posts = await post_model_1.default.find({ author: userId });
         if (!user) {
             return res
                 .status(404)
                 .json({ success: false, message: "user not found" });
         }
-        return res.status(200).json({ success: true, user });
+        return res.status(200).json({ success: true, user, posts: posts || [] });
     }
     catch (error) {
         console.log("Error in profile controller", error);
@@ -132,6 +172,13 @@ const googleCallback = async (req, res) => {
                 .json({ success: false, message: "Google authentication failed" });
         }
         const token = jsonwebtoken_1.default.sign({ id: user._id, email: user.email }, process.env.JWT_SECRET, { expiresIn: "7d" });
+        // Debug logging to help diagnose cross-site cookie issues
+        console.log("Google callback request origin:", req.headers.origin);
+        console.log("Setting cookie with options:", {
+            httpOnly: true,
+            secure: process.env.NODE_ENV === "production",
+            sameSite: "none",
+        });
         res.cookie("token", token, {
             httpOnly: true,
             secure: process.env.NODE_ENV === "production",
