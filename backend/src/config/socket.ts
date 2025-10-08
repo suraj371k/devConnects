@@ -13,7 +13,7 @@ let ioInstance: Server | null = null;
 export const initializeSocket = (httpServer: HTTPServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: "https://dev-connects.vercel.app",
+      origin: "*",
       credentials: true,
     },
   });

@@ -88,7 +88,7 @@ const Messages = () => {
   return (
     <div className="bg-black min-h-screen flex flex-col text-gray-200">
       {/* Header */}
-      <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-zinc-900">
+      <div className="p-4 border-b fixed border-gray-800 flex items-center justify-between bg-zinc-900">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold">

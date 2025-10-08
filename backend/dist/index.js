@@ -30,7 +30,7 @@ app.use(
 // WARNING: This is permissive and should be reverted or replaced with a strict
 // allowlist (using FRONTEND_URL) in production.
 (0, cors_1.default)({
-    origin: "https://dev-connects.vercel.app",
+    origin: "*",
     credentials: true,
 }));
 app.use(passport_1.default.initialize());
