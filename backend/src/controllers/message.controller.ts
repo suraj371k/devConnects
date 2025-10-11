@@ -1,7 +1,7 @@
 import { Request, Response } from "express";
 import mongoose from "mongoose";
 import Message from "../models/message.model";
-import { getIOInstance, onlineUsers } from "../config/socket";
+import { getIo } from "../config/socket";
 
 export const sendMessage = async (req: Request, res: Response) => {
   try {
@@ -29,13 +29,17 @@ export const sendMessage = async (req: Request, res: Response) => {
       .populate("sender", "name email")
       .populate("receiver", "name email");
 
-    //send message via socket.io to receiver if they online
-    const io = getIOInstance();
-    const receiverSocketId = onlineUsers.get(receiverId);
-
-    if (receiverSocketId) {
-      // Send to specific user only
-      io.to(receiverSocketId).emit("newMessage", populatedMessage);
+    try {
+      const io = getIo();
+      io.to(receiverId).emit("receiverMessage", {
+        _id: message._id,
+        text: message.text,
+        sender: userId,
+        receiver: receiverId,
+        createdAt: message.createdAt,
+      });
+    } catch (error: any) {
+      console.log("socket.io not initialized", error.message);
     }
 
     res.status(201).json({ success: true, message: populatedMessage });
@@ -68,7 +72,14 @@ export const getMessages = async (req: Request, res: Response) => {
     })
       .populate("sender", "name email")
       .populate("receiver", "name email")
-      .sort({ createdAt: 1 }); // Sort by creation time
+      .sort({ createdAt: 1 });
+
+    try {
+      const io = getIo();
+      io.to(receiverId);
+    } catch (err: any) {
+      console.log("Socket.IO not initialized:", err.message);
+    }
 
     res.status(200).json({ success: true, messages });
   } catch (error) {
@@ -77,8 +88,6 @@ export const getMessages = async (req: Request, res: Response) => {
   }
 };
 
-
-// Optional: Get all users the current user has chatted with
 export const getChatUsers = async (req: Request, res: Response) => {
   try {
     const userId = (req as any).user.id;

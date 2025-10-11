@@ -1,77 +1,60 @@
-import { Server } from "socket.io";
+import { DefaultEventsMap, Server } from "socket.io";
 import { Server as HTTPServer } from "http";
-import jwt from "jsonwebtoken";
-import cookie from "cookie";
-
-interface DecodedToken {
-  id: string;
-}
 
 export const onlineUsers = new Map<string, string>();
-let ioInstance: Server | null = null;
 
+let ioInstance: Server | null = null;
+let io: Server<
+  DefaultEventsMap,
+  DefaultEventsMap,
+  DefaultEventsMap,
+  any
+> | null = null;
 export const initializeSocket = (httpServer: HTTPServer) => {
-  const io = new Server(httpServer, {
+  if (ioInstance) {
+    console.warn("Socket.IO already initialized. Returning existing instance.");
+    return ioInstance;
+  }
+
+  io = new Server(httpServer, {
     cors: {
       origin: ["https://dev-connects.vercel.app", "http://localhost:5173"],
       credentials: true,
     },
   });
 
-  // Set instance immediately
-  setIOInstance(io);
-
-  const jwtSecret = process.env.JWT_SECRET;
-  if (!jwtSecret) {
-    throw new Error("JWT_SECRET environment variable is required");
-  }
-
-  io.use((socket, next) => {
-    try {
-      // Parse cookies from handshake headers
-      const cookies = cookie.parse(socket.handshake.headers.cookie || "");
-
-      // Get token from cookies (adjust the name based on your cookie name)
-      const token = cookies.token || cookies.accessToken || cookies.jwt;
-
-      if (!token) {
-        console.log("❌ No token found in cookies");
-        return next(new Error("No token provided"));
-      }
-
-      const decoded = jwt.verify(token, jwtSecret) as DecodedToken;
-      socket.data.userId = decoded.id;
-      next();
-    } catch (error) {
-      console.log("❌ JWT verification failed:", error);
-      next(new Error("Invalid token"));
-    }
-  });
-
+  //handle socket connection
   io.on("connection", (socket) => {
-    const userId = socket.data.userId;
-    console.log(`User connected: ${userId}`);
+    console.log(`user connected: ${socket.id}`);
 
-    onlineUsers.set(userId, socket.id);
-    io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
+    //join specific room
+    socket.on("joinRoom", (roomId) => {
+      socket.join(roomId);
+      console.log(`${socket.id} joined room ${roomId}`);
+    });
 
+    //send message
+    socket.on("sendMessage", ({ roomId, message }) => {
+      console.log(`message in ${roomId}:`, message);
+      socket.to(roomId).emit("receiveMessage", message); // ✅ Fixed event name
+    });
+
+    socket.on("typing", ({ roomId, isTyping }) => {
+      socket.to(roomId).emit("typing", { socketId: socket.id, isTyping });
+    });
+
+    // Disconnect
     socket.on("disconnect", () => {
-      console.log(`User disconnected: ${userId}`);
-      onlineUsers.delete(userId);
-      io.emit("getOnlineUsers", Array.from(onlineUsers.keys()));
+      console.log(`User disconnected: ${socket.id}`);
     });
   });
-
   return io;
 };
 
-export const setIOInstance = (io: Server) => {
-  ioInstance = io;
-};
-
-export const getIOInstance = (): Server => {
-  if (!ioInstance) {
-    throw new Error("Socket.IO not initialized. Call initializeSocket first.");
+// Getter for io instance
+export const getIo = () => {
+  if (!io) {
+    throw new Error("Socket.io not initialized!");
   }
-  return ioInstance;
+  return io;
 };

@@ -1,4 +1,4 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { usePostStore } from "@/store/postStore";
 import { useAuthStore } from "@/store/authStore";
 import PostCard from "./PostCard";
@@ -8,15 +8,40 @@ import { RefreshCw, AlertCircle } from "lucide-react";
 import { Card, CardContent } from "./ui/card";
 
 const Posts = () => {
-  const { posts, loading, error, getPosts } = usePostStore();
+  const { posts, loading, error, getPosts, currentPage, totalPages } =
+    usePostStore();
   const { initialized } = useAuthStore();
+
+  const observerRef = useRef(null);
+  const loadMoreRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     // Only load posts after auth state is initialized
     if (initialized) {
-      getPosts();
+      getPosts(1);
     }
   }, [getPosts, initialized]);
+
+  //load more
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      (entries) => {
+        if (entries[0].isIntersecting && !loading && currentPage < totalPages) {
+          getPosts(currentPage + 1);
+        }
+      },
+      { threshold: 1.0 }
+    );
+
+    if (loadMoreRef.current) {
+      observer.observe(loadMoreRef.current);
+    }
+    return () => {
+      if (loadMoreRef.current) {
+        observer.unobserve(loadMoreRef.current);
+      }
+    };
+  }, [loading, currentPage, totalPages]);
 
   // Show loading while auth is initializing
   if (!initialized) {
@@ -155,7 +180,7 @@ const Posts = () => {
           <div className="space-y-6">
             {posts.map((post, index) => (
               <motion.div
-                key={post._id}
+                key={post._id || index}
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
                 exit={{ opacity: 0, y: -20 }}
@@ -208,7 +233,12 @@ const Posts = () => {
             </Card>
           </motion.div>
         )}
-        
+
+        <div ref={loadMoreRef}>
+          {loading && <p>Loading more posts...</p>}
+          {error && <p>{error}</p>}
+          {currentPage >= totalPages && <p>No more posts</p>}
+        </div>
       </AnimatePresence>
     </motion.div>
   );

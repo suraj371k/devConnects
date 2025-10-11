@@ -1,43 +1,42 @@
-import { BrowserRouter, Route, Routes} from "react-router-dom";
+import { BrowserRouter, Route, Routes } from "react-router-dom";
 import { Suspense, lazy, useEffect } from "react";
 import Layout from "./components/Layout";
 import { Toaster } from "react-hot-toast";
 import { useAuthStore } from "./store/authStore";
-import { useMessagesStore } from "./store/messageStore";
 import ProtectedRoute from "./components/ProtectedRoute";
+import { useMessagesStore } from "./store/messageStore";
 
 const Posts = lazy(() => import("./pages/PostPage"));
 const Inbox = lazy(() => import("./pages/Inbox"));
-const Profile = lazy(() => import('./pages/Profile'))
-const Notification = lazy(() => import('./pages/Notification'))
-const Login = lazy(() => import('./pages/Login'))
-const Signup = lazy(() => import('./pages/Signup'))
-const CreatePost = lazy(() => import('./pages/CreatePost'))
-const Messages = lazy(() => import('./pages/Messages'))
-
-
+const Profile = lazy(() => import("./pages/Profile"));
+const Notification = lazy(() => import("./pages/Notification"));
+const Login = lazy(() => import("./pages/Login"));
+const Signup = lazy(() => import("./pages/Signup"));
+const CreatePost = lazy(() => import("./pages/CreatePost"));
+const Messages = lazy(() => import("./pages/Messages"));
 
 const App = () => {
-  const { initializeAuth, user, initialized } = useAuthStore();
-  const { initializeSocket, disconnectSocket } = useMessagesStore();
-
+  const { initializeAuth } = useAuthStore();
   useEffect(() => {
     initializeAuth();
-  }, [initializeAuth]);
+  }, []);
 
+  const { initializeSocket, listenMessages } = useMessagesStore.getState();
   useEffect(() => {
-    if (user && initialized) {
-      initializeSocket();
-    } else {
-      disconnectSocket();
-    }
+    initializeSocket(); // Join own room
+    const cleanup = listenMessages(); // Start listening
 
-    return () => disconnectSocket();
-  }, [user, initialized]);
-
+    return cleanup; // Cleanup on unmount
+  }, []);
   return (
     <BrowserRouter>
-      <Suspense fallback={<div>Loading...</div>}>
+      <Suspense
+        fallback={
+          <div className="min-h-screen bg-black flex items-center justify-center">
+            <div className="text-white">Loading...</div>
+          </div>
+        }
+      >
         <Routes>
           <Route path="/" element={<Layout />}>
             <Route path="/signup" element={<Signup />} />
@@ -57,7 +56,16 @@ const App = () => {
             />
           </Route>
         </Routes>
-        <Toaster />
+        <Toaster
+          position="top-center"
+          toastOptions={{
+            duration: 3000,
+            style: {
+              background: "#1f2937",
+              color: "#fff",
+            },
+          }}
+        />
       </Suspense>
     </BrowserRouter>
   );

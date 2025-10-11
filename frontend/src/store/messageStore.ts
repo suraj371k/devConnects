@@ -1,7 +1,6 @@
 import { create } from "zustand";
-import { io, Socket } from "socket.io-client";
-import { axiosClient } from "./authStore";
-import { backendUrl } from "@/lib/backendUrl";
+import { axiosClient, useAuthStore } from "./authStore";
+import { socket } from "@/lib/socket";
 
 interface User {
   _id: string;
@@ -31,122 +30,43 @@ interface ChatUser {
 }
 
 interface MessagesState {
-  // State
   messages: Message[];
   chatUsers: ChatUser[];
   selectedUser: User | null;
   onlineUsers: string[];
-  socket: Socket | null;
   loading: boolean;
   error: string | null;
-  isSocketConnected: boolean;
 
-  // Actions
-  initializeSocket: () => void;
-  disconnectSocket: () => void;
   sendMessage: (receiverId: string, text: string) => Promise<void>;
   getMessages: (receiverId: string) => Promise<void>;
+  listenMessages: () => () => void;
   getChatUsers: () => Promise<void>;
   setSelectedUser: (user: User | null) => void;
-  addMessage: (message: Message) => void;
-  setOnlineUsers: (users: string[]) => void;
   clearError: () => void;
   clearMessages: () => void;
+  initializeSocket: () => void; // NEW: Initialize socket connection
 }
 
 export const useMessagesStore = create<MessagesState>((set, get) => ({
-  // Initial state
   messages: [],
   chatUsers: [],
   selectedUser: null,
   onlineUsers: [],
-  socket: null,
   loading: false,
   error: null,
-  isSocketConnected: false,
 
-  // Initialize Socket.IO connection - cookies are sent automatically
+  // NEW: Initialize socket and join user's own room
   initializeSocket: () => {
-    const socket = io(backendUrl, {
-      withCredentials: true, // Important for cookies
-    });
-
-    socket.on("connect", () => {
-      console.log("✅ Connected to server");
-      set({ isSocketConnected: true, error: null });
-    });
-
-    socket.on("disconnect", () => {
-      console.log("🔌 Disconnected from server");
-      set({ isSocketConnected: false });
-    });
-
-    socket.on("getOnlineUsers", (onlineUsers: string[]) => {
-      console.log("📱 Online users:", onlineUsers);
-      set({ onlineUsers });
-    });
-
-    socket.on("newMessage", (message: Message) => {
-      console.log("💬 New message received:", message);
-      const { messages, selectedUser, chatUsers } = get();
-
-      // If the message is from the currently selected user, add it to messages
-      if (
-        selectedUser &&
-        (message.sender._id === selectedUser._id ||
-          message.receiver._id === selectedUser._id)
-      ) {
-        const updatedMessages = [...messages, message];
-        set({ messages: updatedMessages });
-      }
-
-      // Update chat users list with new message
-      const updatedChatUsers = chatUsers
-        .map((user) => {
-          if (
-            user._id === message.sender._id ||
-            user._id === message.receiver._id
-          ) {
-            return {
-              ...user,
-              lastMessage: message.text,
-              lastMessageTime: message.createdAt,
-            };
-          }
-          return user;
-        })
-        .sort((a, b) => {
-          const timeA = new Date(a.lastMessageTime || 0).getTime();
-          const timeB = new Date(b.lastMessageTime || 0).getTime();
-          return timeB - timeA;
-        });
-
-      set({ chatUsers: updatedChatUsers });
-    });
-
-    socket.on("connect_error", (error) => {
-      console.error("❌ Socket connection error:", error);
-      set({
-        error: "Failed to connect to chat server",
-        isSocketConnected: false,
-      });
-    });
-
-    set({ socket });
-  },
-
-  // Disconnect socket
-  disconnectSocket: () => {
-    const { socket } = get();
-    if (socket) {
-      socket.disconnect();
-      set({ socket: null, onlineUsers: [], isSocketConnected: false });
+    const user = useAuthStore.getState().user;
+    if (user?._id) {
+      socket.emit("joinRoom", user._id);
+      console.log(`✅ Joined own room: ${user._id}`);
     }
   },
 
-  // Send message
-  sendMessage: async (receiverId: string, text: string) => {
+  sendMessage: async (receiverId, text) => {
     const { messages } = get();
+    const user = useAuthStore.getState().user;
 
     if (!text.trim()) {
       set({ error: "Message cannot be empty" });
@@ -163,12 +83,13 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
       if (response.data.success) {
         const newMessage = response.data.message;
 
-        // Add the actual message to state
-        set({
-          messages: [...messages, newMessage],
-          loading: false,
+        // ✅ FIXED: Send to receiver's room with correct structure
+        socket.emit("sendMessage", {
+          roomId: receiverId,
+          message: newMessage, // Changed from 'text' to 'message'
         });
 
+        set({ messages: [...messages, newMessage], loading: false });
         console.log("✅ Message sent successfully");
       }
     } catch (error: any) {
@@ -180,18 +101,14 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     }
   },
 
-  // Get messages for a specific chat
-  getMessages: async (receiverId: string) => {
+  getMessages: async (receiverId) => {
     try {
       set({ loading: true, error: null });
 
       const response = await axiosClient.get(`/api/message/${receiverId}`);
 
       if (response.data.success) {
-        set({
-          messages: response.data.messages,
-          loading: false,
-        });
+        set({ messages: response.data.messages, loading: false });
         console.log(`✅ Loaded ${response.data.messages.length} messages`);
       }
     } catch (error: any) {
@@ -203,7 +120,28 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     }
   },
 
-  // Get all chat users
+  listenMessages: () => {
+    // ✅ FIXED: Changed to "receiveMessage" to match backend
+    const handleReceive = (message: Message) => {
+      console.log("📨 Received message:", message);
+      set((state) => ({
+        messages: [...state.messages, message],
+      }));
+    };
+
+    const handleTyping = ({ socketId, isTyping }: any) => {
+      console.log(`${socketId} is ${isTyping ? "typing..." : "stopped typing"}`);
+    };
+
+    socket.on("receiveMessage", handleReceive); // ✅ Fixed event name
+    socket.on("typing", handleTyping);
+
+    return () => {
+      socket.off("receiveMessage", handleReceive);
+      socket.off("typing", handleTyping);
+    };
+  },
+
   getChatUsers: async () => {
     try {
       set({ loading: true, error: null });
@@ -211,10 +149,14 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
       const response = await axiosClient.get("/api/message/users/chats");
 
       if (response.data.success) {
-        set({
-          chatUsers: response.data.users,
-          loading: false,
-        });
+        const sortedUsers = response.data.users.sort(
+          (a: ChatUser, b: ChatUser) => {
+            const timeA = new Date(a.lastMessageTime || 0).getTime();
+            const timeB = new Date(b.lastMessageTime || 0).getTime();
+            return timeB - timeA;
+          }
+        );
+        set({ chatUsers: sortedUsers, loading: false });
         console.log(`✅ Loaded ${response.data.users.length} chat users`);
       }
     } catch (error: any) {
@@ -226,8 +168,7 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     }
   },
 
-  // Set selected user for chat
-  setSelectedUser: (user: User | null) => {
+  setSelectedUser: (user) => {
     set({ selectedUser: user });
     if (user) {
       get().getMessages(user._id);
@@ -236,23 +177,10 @@ export const useMessagesStore = create<MessagesState>((set, get) => ({
     }
   },
 
-  // Add message to state
-  addMessage: (message: Message) => {
-    const { messages } = get();
-    set({ messages: [...messages, message] });
-  },
-
-  // Set online users
-  setOnlineUsers: (users: string[]) => {
-    set({ onlineUsers: users });
-  },
-
-  // Clear error
   clearError: () => {
     set({ error: null });
   },
 
-  // Clear messages
   clearMessages: () => {
     set({ messages: [], selectedUser: null });
   },

@@ -15,7 +15,6 @@ const Messages = () => {
     messages,
     loading,
     error,
-    isSocketConnected,
     onlineUsers,
     sendMessage,
     setSelectedUser,
@@ -67,6 +66,7 @@ const Messages = () => {
     );
   }
 
+
   const handleSendMessage = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault();
     if (!text.trim() || loading) return;
@@ -86,9 +86,9 @@ const Messages = () => {
   const isOnline = isUserOnline(follower._id);
 
   return (
-    <div className="bg-black min-h-screen flex flex-col text-gray-200">
+    <div className="bg-black h-screen flex flex-col text-gray-200 overflow-hidden">
       {/* Header */}
-      <div className="p-4 border-b fixed border-gray-800 flex items-center justify-between bg-zinc-900">
+      <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-zinc-900">
         <div className="flex items-center gap-3">
           <div className="relative">
             <div className="w-10 h-10 rounded-full bg-blue-600 flex items-center justify-center font-bold">
@@ -112,19 +112,14 @@ const Messages = () => {
         </div>
 
         {/* Socket Connection Status */}
-        <div className="flex items-center gap-2">
-          {isSocketConnected ? (
-            <div className="flex items-center gap-1 text-green-400 text-xs">
-              <Wifi className="w-4 h-4" />
-              <span>Connected</span>
-            </div>
-          ) : (
+        {/* <div className="flex items-center gap-2"> */}
+     
             <div className="flex items-center gap-1 text-red-400 text-xs">
               <WifiOff className="w-4 h-4" />
               <span>Offline</span>
             </div>
-          )}
-        </div>
+          
+        {/* </div> */}
       </div>
 
       {/* Error Message */}
@@ -201,50 +196,52 @@ const Messages = () => {
       </div>
 
       {/* Chat Input */}
-      <form
-        onSubmit={handleSendMessage}
-        className="p-3 border-t mb-1 rounded-md border-gray-800 bg-zinc-900 flex items-center gap-2"
-      >
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="text-gray-400 hover:text-white"
-          disabled={loading}
+      {/* <div className="p-4 border-b border-gray-800 flex items-center justify-between bg-zinc-900 flex-shrink-0"> */}
+        <form
+          onSubmit={handleSendMessage}
+          className="p-3 border-t mb-1 justify-between flex-shrink-0 rounded-md border-gray-800 bg-zinc-900 flex items-center gap-2"
         >
-          <Smile className="w-5 h-5" />
-        </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-gray-400 hover:text-white"
+            disabled={loading}
+          >
+            <Smile className="w-5 h-5" />
+          </Button>
 
-        <Button
-          type="button"
-          variant="ghost"
-          size="icon"
-          className="text-gray-400 hover:text-white"
-          disabled={loading}
-        >
-          <Paperclip className="w-5 h-5" />
-        </Button>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="text-gray-400 hover:text-white"
+            disabled={loading}
+          >
+            <Paperclip className="w-5 h-5" />
+          </Button>
 
-        <Input
-          value={text}
-          onChange={(e) => setText(e.target.value)}
-          className="flex-1 border-none bg-zinc-800 text-gray-200 focus:ring-0 focus:outline-none"
-          placeholder={loading ? "Sending..." : "Type a message..."}
-          disabled={loading}
-        />
+          <Input
+            value={text}
+            onChange={(e) => setText(e.target.value)}
+            className="flex-1 border-none bg-zinc-800 text-gray-200 focus:ring-0 focus:outline-none"
+            placeholder={loading ? "Sending..." : "Type a message..."}
+            disabled={loading}
+          />
 
-        <Button
-          type="submit"
-          className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-          disabled={!text.trim() || loading}
-        >
-          {loading ? (
-            <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-          ) : (
-            <Send className="w-5 h-5" />
-          )}
-        </Button>
-      </form>
+          <Button
+            type="submit"
+            className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            disabled={!text.trim() || loading}
+          >
+            {loading ? (
+              <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+            ) : (
+              <Send className="w-5 h-5" />
+            )}
+          </Button>
+        </form>
+      {/* </div> */}
     </div>
   );
 };

@@ -77,8 +77,10 @@ interface AuthState {
   logoutUser: () => Promise<{ success: boolean; message?: string }>;
   profile: () => Promise<User | null>;
   initializeAuth: () => Promise<void>;
-  updateProfile: (data: UpdateProfileData) => Promise<{ success: boolean; message?: string }>;
-  getProfileById: (id: string) => Promise<User | null>
+  updateProfile: (
+    data: UpdateProfileData
+  ) => Promise<{ success: boolean; message?: string }>;
+  getProfileById: (id: string) => Promise<User | null>;
   clearAuth: () => void;
   clearError: () => void;
 }
@@ -99,18 +101,26 @@ const normalizeUser = (apiUser: any): User | null => {
     location: apiUser.location,
     github: apiUser.github,
     linkedin: apiUser.linkedin,
-    website: apiUser.website || apiUser.websites, // Handle both 'website' and 'websites'
+    website: apiUser.website || apiUser.websites,
     experience: apiUser.experience || [],
     followers: apiUser.followers || [],
     following: apiUser.following || [],
   };
 };
 
+// Helper function to check cookies
+const getCookie = (name: string): string | null => {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(";").shift() || null;
+  return null;
+};
+
 export const useAuthStore = create<AuthState>()(
   persist(
     (set, get) => ({
-  user: null,
-  profileUser: null,
+      user: null,
+      profileUser: null,
       loading: false,
       error: null,
       initialized: false,
@@ -142,16 +152,20 @@ export const useAuthStore = create<AuthState>()(
           const res = await axiosClient.get(`/api/user/${id}`);
           if (res.data.success) {
             const user = normalizeUser(res.data.user);
-            // set the fetched profile into profileUser so we don't overwrite
-            // the authenticated `user` in the store
             set({ profileUser: user, loading: false });
             return user;
           } else {
-            set({ loading: false, error: res.data.message || "User not found" });
+            set({
+              loading: false,
+              error: res.data.message || "User not found",
+            });
             return null;
           }
         } catch (err: any) {
-          set({ loading: false, error: err?.response?.data?.message || "Failed to fetch user" });
+          set({
+            loading: false,
+            error: err?.response?.data?.message || "Failed to fetch user",
+          });
           return null;
         }
       },
@@ -159,11 +173,38 @@ export const useAuthStore = create<AuthState>()(
       loginUser: async (userData) => {
         try {
           set({ loading: true, error: null });
+
+          console.log("🔐 Attempting login...");
+          console.log("🌐 Backend URL:", backendUrl);
+          console.log("🍪 Cookies BEFORE login:", document.cookie || "NONE");
+
           const res = await axiosClient.post("/api/auth/login", userData);
+
+          console.log("📦 Login response:", res.data);
+          console.log("🍪 Cookies AFTER login:", document.cookie || "NONE");
+
+          // Check specific cookies
+          const tokenCookie = getCookie("token");
+          const accessTokenCookie = getCookie("accessToken");
+          const jwtCookie = getCookie("jwt");
+
+          console.log(
+            "🔍 Token cookie:",
+            tokenCookie ? "EXISTS ✅" : "MISSING ❌"
+          );
+          console.log(
+            "🔍 AccessToken cookie:",
+            accessTokenCookie ? "EXISTS ✅" : "MISSING ❌"
+          );
+          console.log("🔍 JWT cookie:", jwtCookie ? "EXISTS ✅" : "MISSING ❌");
 
           if (res.data.success) {
             const user = normalizeUser(res.data.user);
             set({ user, loading: false });
+
+            // Initialize socket after successful login
+            console.log("✅ Login successful, user:", user?.name);
+
             return { success: true, message: "Login successful" };
           } else {
             const message = res.data.message || "Login failed";
@@ -171,6 +212,8 @@ export const useAuthStore = create<AuthState>()(
             return { success: false, message };
           }
         } catch (err: any) {
+          console.error("❌ Login error:", err);
+          console.error("❌ Error response:", err.response?.data);
           const message = err.response?.data?.message || "Login failed";
           set({ loading: false, error: message });
           return { success: false, message };
@@ -180,9 +223,20 @@ export const useAuthStore = create<AuthState>()(
       logoutUser: async () => {
         try {
           set({ loading: true, error: null });
+
+          console.log("🚪 Logging out...");
+
           const res = await axiosClient.post("/api/auth/logout");
+
+          console.log("🍪 Cookies AFTER logout:", document.cookie || "NONE");
+
           if (res.data.success) {
             set({ user: null, loading: false });
+
+            // // Disconnect socket on logout
+            // const { disconnectSocket } = await import("./messageStore");
+            // disconnectSocket();
+
             return { success: true, message: "Logout successful" };
           } else {
             return {
@@ -222,19 +276,23 @@ export const useAuthStore = create<AuthState>()(
       updateProfile: async (data: UpdateProfileData) => {
         try {
           set({ loading: true, error: null });
-          
-          // Prepare the data for the backend
+
           const updateData: any = { ...data };
-          
-          // Handle the website field mapping (frontend uses 'website', backend might use 'websites')
+
           if (data.website) {
             updateData.websites = data.website;
             delete updateData.website;
           }
 
-          const res = await axiosClient.put("/api/auth/update-profile", updateData);
+          const res = await axiosClient.put(
+            "/api/auth/update-profile",
+            updateData
+          );
 
-          if (res.data.success || res.data.message === "Profile updated successfully") {
+          if (
+            res.data.success ||
+            res.data.message === "Profile updated successfully"
+          ) {
             const user = normalizeUser(res.data.user);
             set({ user, loading: false, error: null });
             return { success: true, message: "Profile updated successfully" };
@@ -244,7 +302,8 @@ export const useAuthStore = create<AuthState>()(
             return { success: false, message };
           }
         } catch (err: any) {
-          const message = err.response?.data?.message || "Profile update failed";
+          const message =
+            err.response?.data?.message || "Profile update failed";
           set({ loading: false, error: message });
           return { success: false, message };
         }
@@ -254,14 +313,20 @@ export const useAuthStore = create<AuthState>()(
         if (get().initialized) return;
 
         try {
+          console.log("🔄 Initializing auth...");
+          console.log("🍪 Cookies on init:", document.cookie || "NONE");
+
           const res = await axiosClient.get("/api/auth/profile");
           if (res.data.success) {
             const user = normalizeUser(res.data.user);
+            console.log("✅ Auth initialized with user:", user?.name);
             set({ user, initialized: true });
           } else {
+            console.log("⚠️ Auth initialized without user");
             set({ user: null, initialized: true });
           }
-        } catch {
+        } catch (err) {
+          console.log("❌ Auth initialization failed:", err);
           set({ user: null, initialized: true });
         }
       },

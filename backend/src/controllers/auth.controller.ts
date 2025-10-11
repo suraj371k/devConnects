@@ -5,6 +5,17 @@ import User from "../models/user.model";
 import jwt from "jsonwebtoken";
 import Post from "../models/post.model";
 
+const getCookieOptions = () => {
+  const isProduction = process.env.NODE_ENV === "production";
+  
+  return {
+    httpOnly: true,
+    secure: isProduction, // MUST be true in production for sameSite: "none"
+    sameSite: isProduction ? ("none" as const) : ("lax" as const),
+    maxAge: 7 * 24 * 60 * 60 * 1000, // 7 days
+  };
+};
+
 export const register = async (
   req: Request<{}, {}, RegisterUserInput>,
   res: Response
@@ -99,20 +110,13 @@ export const login = async (
       { expiresIn: "7d" }
     );
 
-    // Debug logging to help diagnose cross-site cookie issues
-    console.log("Login request origin:", req.headers.origin);
-    console.log("Setting cookie with options:", {
-      httpOnly: true,
-      secure: false,
-      sameSite: "lax",
-    });
+    const cookieOptions = getCookieOptions();
+    
+    console.log("✅ Login successful for:", user.email);
+    console.log("🍪 Setting cookie with options:", cookieOptions);
+    console.log("🌐 Request origin:", req.headers.origin);
 
-    res.cookie("token", token, {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      sameSite: "none",
-      maxAge: 7 * 24 * 60 * 60 * 1000,
-    });
+    res.cookie("token", token, cookieOptions);
 
     // return a fuller user payload so frontend has profile fields available
     const sanitizedUser = {
@@ -138,7 +142,7 @@ export const login = async (
       user: sanitizedUser,
     });
   } catch (error) {
-    console.error("Error in login user controller", error);
+    console.error("❌ Error in login user controller", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -147,16 +151,16 @@ export const login = async (
 
 export const logout = async (req: Request, res: Response) => {
   try {
-    res.clearCookie("token", {
-      httpOnly: true,
-      secure: true,
-      sameSite: "none",
-    });
+    const cookieOptions = getCookieOptions();
+    
+    
+    res.clearCookie("token", cookieOptions);
+    
     return res
       .status(200)
       .json({ success: true, message: "Logged out successfully" });
   } catch (error) {
-    console.log("error in logout controller", error);
+    console.log("❌ Error in logout controller", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -181,7 +185,7 @@ export const profile = async (req: Request, res: Response) => {
 
     return res.status(200).json({ success: true, user, posts: posts || [] });
   } catch (error) {
-    console.log("Error in profile controller", error);
+    console.log("❌ Error in profile controller", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });
@@ -206,26 +210,18 @@ export const googleCallback = async (req: Request, res: Response) => {
       { expiresIn: "7d" }
     );
 
+    const cookieOptions = getCookieOptions();
 
-      // Debug logging to help diagnose cross-site cookie issues
-      console.log("Google callback request origin:", req.headers.origin);
-      console.log("Setting cookie with options:", {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
-      });
+    // console.log("✅ Google login successful for:", user.email);
+    // console.log("🍪 Setting cookie with options:", cookieOptions);
+    // console.log("🌐 Request origin:", req.headers.origin);
 
-      res.cookie("token", token, {
-        httpOnly: true,
-        secure: process.env.NODE_ENV === "production",
-        sameSite: "none",
-        maxAge: 7 * 24 * 60 * 60 * 1000,
-      });
+    res.cookie("token", token, cookieOptions);
 
     const redirectUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     return res.redirect(redirectUrl);
   } catch (error) {
-    console.error("Error in Google callback controller", error);
+    console.error("❌ Error in Google callback controller", error);
     return res
       .status(500)
       .json({ success: false, message: "Internal server error" });

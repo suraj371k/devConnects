@@ -93,6 +93,7 @@ export const usePostStore = create<PostState>((set) => ({
       set({ posts: [], loading: false, error: error?.response?.data?.message || "Failed to fetch posts" });
     }
   },
+
   getLikedPostsByUser: async (id: string) => {
     try {
       set({ loading: true, error: null });
@@ -211,16 +212,14 @@ export const usePostStore = create<PostState>((set) => ({
         params: { page, limit },
       });
 
-      console.log("Posts response:", res.data);
-      console.log("First post likes:", res.data.posts[0]?.likes);
 
-      set({
-        posts: res.data.posts,
+      set((state) => ({
+        posts: page === 1 ? res.data.posts : [...state.posts , res.data.posts],
         currentPage: res.data.currentPage,
         totalPages: res.data.totalPages,
         count: res.data.count,
         loading: false,
-      });
+      }));
     } catch (error: any) {
       set({
         error: error.response?.data?.message || "Error fetching posts",
